@@ -177,7 +177,7 @@ class Window(QWebEngineView):
 
         self.media = settings.get_media_dir_path()
         self.templates = settings.get_templates_dir_path()
-        self.db_path = os.path.join(settings.HPROXY_DIR, 'db')
+        self.db_path = settings.get_db_file_path()
 
         self.channel = QWebChannel(self.page())
         self.router = Router(window=self)
