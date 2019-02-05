@@ -21,11 +21,9 @@ class Update(db.Entity):
 class DatabaseManager(object):
 
     def initialize(self):
-        create = not os.path.exists(settings.DB_FILE)
-
         db.bind(provider='sqlite',
-                filename=settings.DB_FILE,
-                create_db=create)
+                filename=settings.get_db_file_path(),
+                create_db=not os.path.exists(settings.get_db_file_path()))
 
         db.generate_mapping(create_tables=True)
 

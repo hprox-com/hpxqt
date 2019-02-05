@@ -1,18 +1,40 @@
 import os
 import pathlib
-
-PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
-
-TEMPLATES_DIR = os.path.join(PROJECT_DIR, 'templates')
-
-MEDIA_DIRS = os.path.join(PROJECT_DIR, 'media')
-
-USER_DIR = str(pathlib.Path.home())
-
-HPROXY_DIR = os.path.join(USER_DIR, '.hproxy')
-
-if not os.path.exists(HPROXY_DIR):
-    os.mkdir(HPROXY_DIR)
+import sys
 
 
-DB_FILE = os.path.join(HPROXY_DIR, 'db.sqlite3')
+def get_data_dir():
+    if getattr(sys, 'frozen', None):
+        meipass = getattr(sys, '_MEIPASS', None)
+        if meipass:
+            # pyinstaller app
+            return meipass
+
+        # py2app binary
+        return os.path.realpath(os.path.dirname(
+            os.path.dirname(os.path.dirname(__file__)))
+        )
+
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+def get_templates_dir_path():
+    return os.path.join(get_data_dir(), 'templates')
+
+
+def get_media_dir_path():
+    return os.path.join(get_data_dir(), 'media')
+
+
+def get_hprox_dir_path():
+    home = str(pathlib.Path.home())
+
+    hprox_dir = os.path.join(home, '.hproxy')
+    if not os.path.exists(hprox_dir):
+        os.mkdir(hprox_dir)
+
+    return hprox_dir
+
+
+def get_db_file_path():
+    return os.path.join(get_hprox_dir_path(), 'db.sqlite3')
