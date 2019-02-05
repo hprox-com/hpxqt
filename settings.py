@@ -12,7 +12,7 @@ def get_data_dir():
 
         # py2app binary
         return os.path.realpath(os.path.dirname(
-            os.path.dirname(os.path.dirname(__file__)))
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         )
 
     return os.path.dirname(os.path.abspath(__file__))
