@@ -195,7 +195,7 @@ class Window(QWebEngineView):
         self.resize(400, 480)
         self._create_tray_icon()
         self.trayIcon.show()
-        self.setWindowIcon(QIcon(os.path.join(self.media, 'images', 'Desktop_icon.png')))
+        self.setWindowIcon(QIcon(os.path.join(self.media, 'images', 'icon.png')))
 
     def closeEvent(self, event):
         close = QMessageBox()
@@ -342,7 +342,7 @@ class Window(QWebEngineView):
 
         self.trayIconMenu = QMenu(self)
         self.trayIcon = QSystemTrayIcon(self)
-        icon = QIcon(os.path.join(self.media, 'images', 'Desktop_icon.png'))
+        icon = QIcon(os.path.join(self.media, 'images', 'icon.png'))
         self.trayIcon.setIcon(icon)
         self.setWindowIcon(icon)
 
