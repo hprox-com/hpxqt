@@ -175,8 +175,8 @@ class Window(QWebEngineView):
         self.signal_minimize_tray.connect(self.action_minimize_tray)
         #self.signal_upgrade_to_new_version.connect(self.action_upgrade_to_new_version)
 
-        self.media = settings.MEDIA_DIRS
-        self.templates = settings.TEMPLATES_DIR
+        self.media = settings.get_media_dir_path()
+        self.templates = settings.get_templates_dir_path()
         self.db_path = os.path.join(settings.HPROXY_DIR, 'db')
 
         self.channel = QWebChannel(self.page())
