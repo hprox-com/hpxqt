@@ -1,6 +1,4 @@
-import asyncio
 import os
-import platform
 import time
 
 import requests
@@ -12,71 +10,10 @@ from PyQt5.QtWebChannel import QWebChannel
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtWidgets import (QAction, QApplication, QSystemTrayIcon, QMessageBox, QMenu)
 
-from hpxclient.mng.service import start_client
-
-from hpxqt import consumers as hpxqt_consumers
 from hpxqt import utils as hpxqt_utils
 from hpxqt import db as hpxqt_db
+from hpxqt import mng as hpxqt_mng
 
-
-
-#if getattr(sys, 'frozen', False):
-#    FOLDER = os.path.dirname(sys.executable)
-#elif __file__:
-#    FOLDER = os.path.dirname(__file__)
-#
-#
-#class DownloadThread(QThread):
-#
-#    signal_download_finished = pyqtSignal()
-#
-#    def __init__(self, url, filename):
-#        QThread.__init__(self)
-#        self.url = url
-#        self.filename = filename
-#
-#    def __del__(self):
-#        self.wait()
-#
-#    def run(self):
-#        response = requests.get(self.url, stream=True)
-#        if response.status_code != 200:
-#            return
-#
-#        with open(self.filename, 'wb') as f:
-#            for chunk in response.iter_content(chunk_size=1024):
-#                if chunk:  # filter out keep-alive new chunks
-#                    f.write(chunk)
-#                    # f.flush() commented by recommendation from J.F.Sebastian
-#        self.signal_download_finished.emit()
-
-
-class AuthThread(QThread):
-    """ Thread for manager service
-    """
-
-    def __init__(self, email, password):
-        QThread.__init__(self)
-        self.email = email
-        self.password = password
-        self.loop = asyncio.get_event_loop()
-
-    def __del__(self):
-        self.wait()
-
-    def run(self):
-
-        coro = start_client(email=self.email,
-                            password=self.password,
-                            message_handler=hpxqt_consumers.process_message)
-
-        asyncio.ensure_future(coro, loop=self.loop)
-
-        if self.loop.is_running():
-            return
-
-        self.loop.run_forever()
-        
 
 class Router(QObject):
     """
@@ -108,16 +45,6 @@ class Router(QObject):
     def app_handler_version(self):
         self.channel.get_latest_version()
 
-#    def app_handler_download_new_version(self, file):
-#        url = 'file:///home/denis/PycharmProjects/pyqt/interface'
-#        downloader = DownloadThread(url, file)
-#        downloader.data_downloaded.connect(self.handle_downloaded_new_version)
-#        downloader.start()
-#        self.parent.upgrade_to_new_version.emit()
-#
-#    def handle_downloaded_new_version(self):
-#        self.parent.upgrade_to_new_version.emit()
-
     @pyqtSlot(str, str)
     def js_handler_login(self, email, password):
         """
@@ -128,24 +55,23 @@ class Router(QObject):
     @pyqtSlot(str)
     def js_handler_reset_password(self, email):
         url = "https://hprox.com/api/account/password/reset/"
-        data = {"email": email, }
-        requests.post(url, data=data)
+        requests.post(url, data=dict(email=email))
 
     @pyqtSlot(str)
     def js_open_url(self, url):
         self.window.open_url(url)
 
 
-class Window(QWebEngineView):
+class Window(hpxqt_mng.WindowManagerMixIn,
+             QWebEngineView):
 
     signal_minimize_tray = pyqtSignal()
-    signal_upgrade_to_new_version = pyqtSignal()
 
     def __init__(self):
+        super(hpxqt_mng.WindowManagerMixIn, self).__init__()
         super(Window, self).__init__()
 
         self.signal_minimize_tray.connect(self.action_minimize_tray)
-        #self.signal_upgrade_to_new_version.connect(self.action_upgrade_to_new_version)
 
         self.media = hpxqt_utils.get_media_dir_path()
         self.templates = hpxqt_utils.get_templates_dir_path()
@@ -155,20 +81,14 @@ class Window(QWebEngineView):
         self.router = Router(window=self)
         self.channel.registerObject("router", self.router)
         self.page().setWebChannel(self.channel)
-        ################################################
 
-        self._OS = platform.system()
-        self._ARCH = platform.architecture()[0]
         self.name = 'hproxy'
-
-        self.manager_thread = None
-        self.load_login_page()
-
-        self.setWindowTitle("Hprox.com")
+        self.setWindowTitle("hprox.com")
         self.resize(400, 480)
+        self.setWindowIcon(QIcon(os.path.join(self.media, 'images', 'icon.png')))
+
         self._create_tray_icon()
         self.trayIcon.show()
-        self.setWindowIcon(QIcon(os.path.join(self.media, 'images', 'icon.png')))
 
     def closeEvent(self, event):
         close = QMessageBox()
@@ -208,19 +128,6 @@ class Window(QWebEngineView):
 
         return QUrl().fromLocalFile(path_file)
 
-    def start_manager(self, email, password):
-        self.manager_thread = AuthThread(email, password)
-        self.manager_thread.start()
-        print("Start manager", id(self), self.manager_thread)
-
-    def stop_manager(self):
-        loop = asyncio.get_event_loop()
-        loop.stop()
-        self.manager_thread.exit()
-
-#    def _executable_filename(self):
-#        return os.path.join(FOLDER, 'install' if self._OS == 'Linux' else 'install.exe')
-
     def load_login_page(self):
         user = self.router.db_manager.last_user()
         obj = self._read_html_file('login.html')
@@ -231,66 +138,12 @@ class Window(QWebEngineView):
 
     def show_error(self, error_msg):
         self.manager_thread.exit()
-        
+
         # Wake up QT Thread - otherwise throws error
         # that `show_error` JS function not found.
         time.sleep(0.01)
         
         self.page().runJavaScript("show_error('%s');" % error_msg)
-
-#    def action_upgrade_to_new_version(self):
-#        """
-#        Updates database and replaces a current process with
-#        a new process.
-#        """
-#        self.setInstaledUpdateToDB()
-#        print("Start new version")
-#        os.execv(os.path.join(FOLDER, '{}.exe'.format(self.name)
-#        if self._OS == 'Windows' else self.name), ('',))
-
-#
-#    def getUpgrade(self):
-#        """
-#        Downloads upgrade
-#        """
-#        self.upgrade.setIconText('Downloading...')
-#        self.upgrade.setDisabled(True)
-#        self.router.get_upgrade.emit(self._executable_filename())
-#
-#    def setNewVersion(self, version):
-#        """
-#        Sets text version for app or enables
-#        a button for upgrade.
-#        """
-#        last_update = self.getLastUpdateFromDB()
-#        update = self.getUpdateFromDB(version)
-#        if last_update:
-#            if update and update.is_installed:
-#                self.upgrade.setIconText('Version {}'.format(update.version))
-#                self.upgrade.setDisabled(True)
-#            elif not update:
-#                self.upgrade.setIconText('Upgrade...')
-#                self.upgrade.setDisabled(False)
-#                self.addUpdateToDB(version)
-#            elif not update.is_installed:
-#                self.upgrade.setIconText('Upgrade...')
-#                self.upgrade.setDisabled(False)
-#        elif not last_update and version:
-#            self.addUpdateToDB(version, True)
-#            self.upgrade.setIconText('Version {}'.format(version))
-#            self.upgrade.setDisabled(True)
-
-#    def refresh_status(self):
-#        """
-#        Refresh all protocols status
-#        """
-#        list_apps = ['fetcher', 'manager', 'bridge']
-#        self.label_status.setText("Manager: %s | Fetcher: %s | Listener: %s" % (1, 2, 3))
-
-#    def checkUpgrade(self):
-#        """ Sends request a new version
-#        """
-#        self.router.get_latest_version.emit()
 
     def open_url(self, url):
         _url = QUrl(url)
@@ -367,4 +220,5 @@ if __name__ == '__main__':
 
     window = Window()
     window.show()
+    window.load_login_page()
     sys.exit(app.exec_())
