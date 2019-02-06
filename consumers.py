@@ -1,37 +1,67 @@
-from decimal import Decimal
-
 from hpxclient import protocols as protocols
-from hpxclient import consts as hpxclient_consts
+from hpxqt import utils as hpxqt_utils
 
 
-class AuthResponseConsumer(object):
+class Consumer(object):
+    def __init__(self, window):
+        self.window = window
+
+
+class AuthResponseConsumer(Consumer):
     KIND = protocols.AuthResponseProducer.KIND
 
-    def process(self, service, msg):
+    def process(self, msg):
         error = msg[b"error"]
         if error:
-            print("ERROR", error)
-            service.window.show_error(error_msg=error.decode())
-            service.window.stop_manager()
-            service.db_manager.delete_user(service.email)
+            self.window.show_error(error_msg=error.decode())
+            self.window.stop_manager()
+            self.window.router.db_manager.delete_user()
         else:
-            service.is_authorized = True
-            service.db_manager.add_user(email=service.email,
-                                        password=service.password)
-            service.window.signal_minimize_tray.emit()
+            print("in processing", id(self.window), self.window.manager_thread)
+            self.window.signal_minimize_tray.emit()
+            self.window.router.db_manager.add_user(
+                email=self.window.manager_thread.email,
+                password=self.window.manager_thread.password)
 
 
-class InfoBalanceConsumer(object):
+class InfoBalanceConsumer(Consumer):
     KIND = protocols.InfoBalanceConsumer.KIND
 
-    def process(self, service, msg):
-        service.balance_amount = Decimal(str(msg[b"balance_amount"])) / (
-        10 ** hpxclient_consts.HPX_NUMBER_OF_DECIMALS)
-        service.window.label_balance.setText("Balance: %s BST" % service.balance_amount)
+    def process(self, msg):
+        balance_amount = hpxqt_utils.satoshi2bst(msg[b"balance_amount"])
+        self.window.label_balance.setText("Balance: %s BST" % balance_amount)
 
 
-class InfoVersionConsumer(object):
+class InfoVersionConsumer(Consumer):
     KIND = protocols.InfoVersionConsumer.KIND
 
-    def process(self, service, msg):
-        service.latest_version = msg[b"version"].decode()
+    def process(self, msg):
+        self.window.latest_version = msg[b"version"].decode()
+
+
+
+REGISTERED_CONSUMERS = [
+    AuthResponseConsumer,
+    InfoBalanceConsumer,
+    InfoVersionConsumer
+]
+
+
+def process_message(msg):
+    """ All messages sent to the manager are also processed by
+    the ui interface.
+    """
+
+    consumer_cls = None
+    consumer_kind = msg[b'kind'].decode()
+
+    for _consumer_cls in REGISTERED_CONSUMERS:
+        if consumer_kind == _consumer_cls.KIND:
+            consumer_cls = _consumer_cls
+            break
+
+    if consumer_cls is None:
+        raise Exception('Kind not recognized %s' % consumer_kind)
+
+    window = hpxqt_utils.get_main_window()
+    return consumer_cls(window).process(msg[b'data'])

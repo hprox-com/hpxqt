@@ -44,8 +44,8 @@ class DatabaseManager(object):
         update.is_installed = True
 
     @pony_orm.db_session
-    def delete_user(self, email):
-        pony_orm.delete(u for u in User if u.email == email)
+    def delete_user(self):
+        pony_orm.delete(u for u in User)
 
     @pony_orm.db_session
     def delete_update(self, version):

@@ -55,25 +55,26 @@ class AuthThread(QThread):
     """ Thread for manager service
     """
 
-    def __init__(self, loop, email, password, router):
+    def __init__(self, email, password):
         QThread.__init__(self)
         self.email = email
         self.password = password
-        self.loop = loop
-        self.router = router
-        self.manager = None
+        self.loop = asyncio.get_event_loop()
 
     def __del__(self):
         self.wait()
 
     def run(self):
-        self.manager = asyncio.ensure_future(start_client(email=self.email,
-                                                          password=self.password,
-                                                          ui=self.router),
-                                             loop=self.loop)
+
+        coro = start_client(email=self.email,
+                            password=self.password,
+                            message_handler=qt_consumers.process_message)
+
+        asyncio.ensure_future(coro, loop=self.loop)
 
         if self.loop.is_running():
             return
+
         self.loop.run_forever()
         
 
@@ -86,12 +87,6 @@ class Router(QObject):
 
     init_close = pyqtSignal()
 
-    REGISTERED_CONSUMERS = [
-        qt_consumers.AuthResponseConsumer,
-        qt_consumers.InfoBalanceConsumer,
-        qt_consumers.InfoVersionConsumer
-    ]
-
     def __init__(self, window):
         super(Router, self).__init__()
         self.window = window
@@ -101,16 +96,11 @@ class Router(QObject):
         self.channel = None
         self.TIMEOUT = 10
 
-        # Threads for network services
-        self.manager_thread = None
-
         self.init_close.connect(self.app_handler_close_connection)
 
         self.db_manager = DatabaseManager()
         self.db_manager.initialize()
 
-        self.loop = asyncio.get_event_loop()
-        
     def app_handler_close_connection(self):
         if self.channel:
             self.channel.close_connections()
@@ -133,10 +123,7 @@ class Router(QObject):
         """
         Method is called from js.
         """
-        self.email = email
-        self.password = password
-        self.manager_thread = AuthThread(self.loop, email, password, self)
-        self.manager_thread.start()
+        self.window.start_manager(email, password)
 
     @pyqtSlot(str)
     def js_handler_reset_password(self, email):
@@ -147,21 +134,6 @@ class Router(QObject):
     @pyqtSlot(str)
     def js_open_url(self, url):
         self.window.open_url(url)
-
-    def process_message(self, msg):
-        """ All messages sent to the manager are also processed by
-        the ui interface.
-        """
-        consumer_cls = None
-        consumer_kind = msg[b'kind'].decode()
-
-        for _consumer_cls in self.REGISTERED_CONSUMERS:
-            if consumer_kind == _consumer_cls.KIND:
-                consumer_cls = _consumer_cls
-                break
-        if consumer_cls is None:
-            raise Exception('Kind not recognized %s, available: %s' % (consumer_kind, self.REGISTERED_CONSUMERS))
-        return consumer_cls().process(self, msg[b'data'])
 
 
 class Window(QWebEngineView):
@@ -189,6 +161,7 @@ class Window(QWebEngineView):
         self._ARCH = platform.architecture()[0]
         self.name = 'hproxy'
 
+        self.manager_thread = None
         self.load_login_page()
 
         self.setWindowTitle("Hprox.com")
@@ -215,7 +188,7 @@ class Window(QWebEngineView):
 
     def action_logout(self):
         self.router.init_close.emit()
-        self.router.db_manager.delete_user(self.router.email)
+        self.router.db_manager.delete_user()
         self.close()
 
     def action_minimize_tray(self):
@@ -235,10 +208,15 @@ class Window(QWebEngineView):
 
         return QUrl().fromLocalFile(path_file)
 
+    def start_manager(self, email, password):
+        self.manager_thread = AuthThread(email, password)
+        self.manager_thread.start()
+        print("Start manager", id(self), self.manager_thread)
+
     def stop_manager(self):
         loop = asyncio.get_event_loop()
         loop.stop()
-        self.router.manager_thread.exit()
+        self.manager_thread.exit()
 
 #    def _executable_filename(self):
 #        return os.path.join(FOLDER, 'install' if self._OS == 'Linux' else 'install.exe')
@@ -252,7 +230,7 @@ class Window(QWebEngineView):
             self.router.js_handler_login(user.email, user.password)
 
     def show_error(self, error_msg):
-        self.router.manager_thread.exit()
+        self.manager_thread.exit()
         
         # Wake up QT Thread - otherwise throws error
         # that `show_error` JS function not found.
