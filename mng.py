@@ -16,10 +16,6 @@ class TCPManagerThread(QThread):
         self.password = password
         self.loop = asyncio.get_event_loop()
 
-    def __del__(self):
-        self.loop.stop()
-        self.wait()
-
     def run(self):
         coro = mng_service.start_client(
             email=self.email,
@@ -33,6 +29,9 @@ class TCPManagerThread(QThread):
 
         self.loop.run_forever()
 
+    def stop(self):
+        self.loop.stop()
+
 
 class WindowManagerMixIn(object):
     def __init__(self):
@@ -44,4 +43,4 @@ class WindowManagerMixIn(object):
         print("Start manager", id(self), self.manager_thread)
 
     def stop_manager(self):
-        self.manager_thread.exit()
+        self.manager_thread.stop()
