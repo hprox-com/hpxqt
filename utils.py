@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 
 
-SATOSHI_WEIGHT = 1000000000
+SATOSHI_WEIGHT = 100000000
 
 
 def satoshi2bst(amount):
