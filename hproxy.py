@@ -10,12 +10,6 @@ from hpxqt import mng as hpxqt_mng
 
 
 class Router(QtCore.QObject):
-    """
-    Class for connection web, main widgets and network mangers.
-    Methods which are called from js file start with 'js_' and
-    from Managers start with 'network_' and from main app start with 'app_'.
-    """
-
     init_close = QtCore.pyqtSignal()
 
     def __init__(self, window):
