@@ -16,7 +16,7 @@ from hpxclient.mng.service import start_client
 
 from hpxqt import consumers as hpxqt_consumers
 from hpxqt import utils as hpxqt_utils
-from hpxqt.database import DatabaseManager
+from hpxqt import db as hpxqt_db
 
 
 
@@ -98,7 +98,7 @@ class Router(QObject):
 
         self.init_close.connect(self.app_handler_close_connection)
 
-        self.db_manager = DatabaseManager()
+        self.db_manager = hpxqt_db.DatabaseManager()
         self.db_manager.initialize()
 
     def app_handler_close_connection(self):
