@@ -1,37 +1,28 @@
 import os
-import time
-
-import requests
 import sys
+import requests
 
-from PyQt5.QtGui import QIcon, QDesktopServices
-from PyQt5.QtCore import (QObject, pyqtSlot, QThread, pyqtSignal, QUrl)
-from PyQt5.QtWebChannel import QWebChannel
-from PyQt5.QtWebEngineWidgets import QWebEngineView
-from PyQt5.QtWidgets import (QAction, QApplication, QSystemTrayIcon, QMessageBox, QMenu)
+from PyQt5 import QtGui, QtCore, QtWebChannel, QtWebEngineWidgets, QtWidgets
 
 from hpxqt import utils as hpxqt_utils
 from hpxqt import db as hpxqt_db
 from hpxqt import mng as hpxqt_mng
 
 
-class Router(QObject):
+class Router(QtCore.QObject):
     """
     Class for connection web, main widgets and network mangers.
     Methods which are called from js file start with 'js_' and
     from Managers start with 'network_' and from main app start with 'app_'.
     """
 
-    init_close = pyqtSignal()
+    init_close = QtCore.pyqtSignal()
 
     def __init__(self, window):
         super(Router, self).__init__()
         self.window = window
 
-        self.email = None
-        self.password = None
         self.channel = None
-        self.TIMEOUT = 10
 
         self.init_close.connect(self.app_handler_close_connection)
 
@@ -45,27 +36,27 @@ class Router(QObject):
     def app_handler_version(self):
         self.channel.get_latest_version()
 
-    @pyqtSlot(str, str)
+    @QtCore.pyqtSlot(str, str)
     def js_handler_login(self, email, password):
         """
         Method is called from js.
         """
         self.window.start_manager(email, password)
 
-    @pyqtSlot(str)
+    @QtCore.pyqtSlot(str)
     def js_handler_reset_password(self, email):
         url = "https://hprox.com/api/account/password/reset/"
         requests.post(url, data=dict(email=email))
 
-    @pyqtSlot(str)
+    @QtCore.pyqtSlot(str)
     def js_open_url(self, url):
         self.window.open_url(url)
 
 
 class Window(hpxqt_mng.WindowManagerMixIn,
-             QWebEngineView):
+             QtWebEngineWidgets.QWebEngineView):
 
-    signal_minimize_tray = pyqtSignal()
+    signal_minimize_tray = QtCore.pyqtSignal()
 
     def __init__(self):
         super(hpxqt_mng.WindowManagerMixIn, self).__init__()
@@ -77,7 +68,7 @@ class Window(hpxqt_mng.WindowManagerMixIn,
         self.templates = hpxqt_utils.get_templates_dir_path()
         self.db_path = hpxqt_utils.get_db_file_path()
 
-        self.channel = QWebChannel(self.page())
+        self.channel = QtWebChannel.QWebChannel(self.page())
         self.router = Router(window=self)
         self.channel.registerObject("router", self.router)
         self.page().setWebChannel(self.channel)
@@ -85,26 +76,27 @@ class Window(hpxqt_mng.WindowManagerMixIn,
         self.name = 'hproxy'
         self.setWindowTitle("hprox.com")
         self.resize(400, 480)
-        self.setWindowIcon(QIcon(os.path.join(self.media, 'images', 'icon.png')))
+        self.setWindowIcon(QtGui.QIcon(os.path.join(self.media, 'images', 'icon.png')))
 
         self._create_tray_icon()
         self.trayIcon.show()
 
     def closeEvent(self, event):
-        close = QMessageBox()
+        close = QtWidgets.QMessageBox()
         close.setText("Are you sure?")
-        close.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
+        close.setStandardButtons(
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.Cancel)
         close = close.exec()
 
-        if close == QMessageBox.Yes:
+        if close == QtWidgets.QMessageBox.Yes:
             event.accept()
-            QApplication.instance().quit()
+            QtWidgets.QApplication.instance().quit()
         else:
             event.ignore()
 
     def close(self, *args):
         self.router.init_close.emit()
-        QApplication.instance().quit()
+        QtWidgets.QApplication.instance().quit()
 
     def action_logout(self):
         self.router.init_close.emit()
@@ -115,40 +107,20 @@ class Window(hpxqt_mng.WindowManagerMixIn,
         self.set_status_traymenu(is_disabled=False)
         self.hide()
 
-    def _read_html_file(self, file):
-        path_file = os.path.join(self.templates, file)
-
-        if not file.split('.')[-1] == 'html':
-            raise ValueError('{} is not html file.'.format(file))
-
-        with open(path_file, 'r') as html:
-            first_line = html.readline()
-            if not '<!DOCTYPE html>' in str(first_line):
-                raise ValueError('{} is not correct format.'.format(file))
-
-        return QUrl().fromLocalFile(path_file)
-
     def load_login_page(self):
         user = self.router.db_manager.last_user()
-        obj = self._read_html_file('login.html')
-        self.load(obj)
+        url = QtCore.QUrl().fromLocalFile(os.path.join(self.templates, "login.html"))
+        self.load(url)
 
         if user:
             self.router.js_handler_login(user.email, user.password)
 
     def show_error(self, error_msg):
-        self.manager_thread.exit()
-
-        # Wake up QT Thread - otherwise throws error
-        # that `show_error` JS function not found.
-        time.sleep(0.01)
-        
         self.page().runJavaScript("show_error('%s');" % error_msg)
 
     def open_url(self, url):
-        _url = QUrl(url)
-        if not QDesktopServices.openUrl(_url):
-            QMessageBox.warning(self, 'Open Url', 'Could not open url')
+        if not QtGui.QDesktopServices.openUrl(QtCore.QUrl(url)):
+            QtWidgets.QMessageBox.warning(self, 'Open Url', 'Could not open url')
 
     def open_help(self):
         self.open_url('https://hprox.com/dash/how-to-proxy/')
@@ -171,52 +143,53 @@ class Window(hpxqt_mng.WindowManagerMixIn,
         """ Creates initial tray icon with the minimum options.
         """
 
-        self.trayIconMenu = QMenu(self)
-        self.trayIcon = QSystemTrayIcon(self)
-        icon = QIcon(os.path.join(self.media, 'images', 'icon.png'))
+        self.trayIconMenu = QtWidgets.QMenu(self)
+        self.trayIcon = QtWidgets.QSystemTrayIcon(self)
+        icon = QtGui.QIcon(os.path.join(self.media, 'images', 'icon.png'))
         self.trayIcon.setIcon(icon)
         self.setWindowIcon(icon)
 
         self.trayIcon.setContextMenu(self.trayIconMenu)
-        self.label_balance = QAction('Balance: unknown', self)
+        self.label_balance = QtWidgets.QAction('Balance: unknown', self)
         self.label_balance.setDisabled(True)
         self.trayIconMenu.addAction(self.label_balance)
         self.trayIconMenu.addSeparator()
 
-        #self.label_status = QAction('Status: unkown', self)
+        #self.label_status = QtWidgets.QAction('Status: unkown', self)
         #self.label_status.setDisabled(True)
         #self.trayIconMenu.insertAction(self.quitAction, self.label_status)
 
         #self.trayIconMenu.addSeparator()
 
-        #self.upgrade = QAction('Upgrade', self, triggered=self.getUpgrade)
+        #self.upgrade = QtWidgets.QAction('Upgrade', self, triggered=self.getUpgrade)
         #self.trayIconMenu.addAction(self.upgrade)
 
         self.trayIconMenu.addSeparator()
 
-        self.preference = QAction('Preferences', self, triggered=self.open_preferences)
+        self.preference = QtWidgets.QAction('Preferences', self, triggered=self.open_preferences)
         self.trayIconMenu.addAction(self.preference)
 
-        self.help = QAction('Help', self, triggered=self.open_help)
+        self.help = QtWidgets.QAction('Help', self, triggered=self.open_help)
         self.trayIconMenu.addAction(self.help)
         self.trayIconMenu.addSeparator()
 
-        self.logout = QAction('Logout', self, triggered=self.action_logout)
+        self.logout = QtWidgets.QAction('Logout', self, triggered=self.action_logout)
         self.trayIconMenu.addAction(self.logout)
 
-        self.quitAction = QAction("&Quit", self, triggered=self.close)
+        self.quitAction = QtWidgets.QAction("&Quit", self, triggered=self.close)
         self.trayIconMenu.addAction(self.quitAction)
 
         self.set_status_traymenu(is_disabled=True)
 
 
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    if not QSystemTrayIcon.isSystemTrayAvailable():
-        QMessageBox.critical(None, "Systray", "I couldn't detect any system tray on this system.")
+    app = QtWidgets.QApplication(sys.argv)
+    if not QtWidgets.QSystemTrayIcon.isSystemTrayAvailable():
+        QtWidgets.QMessageBox.critical(
+            None, "Systray", "I couldn't detect any system tray on this system.")
         sys.exit(1)
 
-    QApplication.setQuitOnLastWindowClosed(False)
+    QtWidgets.QApplication.setQuitOnLastWindowClosed(False)
 
     window = Window()
     window.show()
