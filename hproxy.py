@@ -11,13 +11,13 @@ from PyQt5.QtCore import (QObject, pyqtSlot, QThread, pyqtSignal, QUrl)
 from PyQt5.QtWebChannel import QWebChannel
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtWidgets import (QAction, QApplication, QSystemTrayIcon, QMessageBox, QMenu)
+
 from hpxclient.mng.service import start_client
 
-from hpxqt import consumers as qt_consumers
-from hpxqt import settings
+from hpxqt import consumers as hpxqt_consumers
+from hpxqt import utils as hpxqt_utils
 from hpxqt.database import DatabaseManager
 
-from pony.orm.dbproviders import sqlite  # it is needed to pyinstaller
 
 
 #if getattr(sys, 'frozen', False):
@@ -68,7 +68,7 @@ class AuthThread(QThread):
 
         coro = start_client(email=self.email,
                             password=self.password,
-                            message_handler=qt_consumers.process_message)
+                            message_handler=hpxqt_consumers.process_message)
 
         asyncio.ensure_future(coro, loop=self.loop)
 
@@ -147,9 +147,9 @@ class Window(QWebEngineView):
         self.signal_minimize_tray.connect(self.action_minimize_tray)
         #self.signal_upgrade_to_new_version.connect(self.action_upgrade_to_new_version)
 
-        self.media = settings.get_media_dir_path()
-        self.templates = settings.get_templates_dir_path()
-        self.db_path = settings.get_db_file_path()
+        self.media = hpxqt_utils.get_media_dir_path()
+        self.templates = hpxqt_utils.get_templates_dir_path()
+        self.db_path = hpxqt_utils.get_db_file_path()
 
         self.channel = QWebChannel(self.page())
         self.router = Router(window=self)

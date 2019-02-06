@@ -3,16 +3,19 @@ from datetime import datetime
 
 from pony import orm as pony_orm
 
-from hpxqt import settings
+from hpxqt import utils as hpxqt_utils
 
-db = pony_orm.Database()
 
-class User(db.Entity):
+DB = pony_orm.Database()
+
+
+class User(DB.Entity):
     email = pony_orm.Required(str)
+    password = pony_orm.Required(str)
     password = pony_orm.Required(str)
 
 
-class Update(db.Entity):
+class Update(DB.Entity):
     version = pony_orm.Required(str)
     date = pony_orm.Required(datetime, default=datetime.now)
     is_installed = pony_orm.Required(bool, default=False)
@@ -21,11 +24,11 @@ class Update(db.Entity):
 class DatabaseManager(object):
 
     def initialize(self):
-        db.bind(provider='sqlite',
-                filename=settings.get_db_file_path(),
-                create_db=not os.path.exists(settings.get_db_file_path()))
+        DB.bind(provider='sqlite',
+                filename=hpxqt_utils.get_db_file_path(),
+                create_db=not os.path.exists(hpxqt_utils.get_db_file_path()))
 
-        db.generate_mapping(create_tables=True)
+        DB.generate_mapping(create_tables=True)
 
 
     @pony_orm.db_session
