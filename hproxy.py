@@ -49,7 +49,6 @@ class Router(QtCore.QObject):
 
 class Window(hpxqt_mng.WindowManagerMixIn,
              QtWebEngineWidgets.QWebEngineView):
-
     signal_minimize_tray = QtCore.pyqtSignal()
 
     def __init__(self):
@@ -145,18 +144,19 @@ class Window(hpxqt_mng.WindowManagerMixIn,
         self.trayIconMenu.addAction(self.label_balance)
         self.trayIconMenu.addSeparator()
 
-        #self.label_status = QtWidgets.QAction('Status: unkown', self)
-        #self.label_status.setDisabled(True)
-        #self.trayIconMenu.insertAction(self.quitAction, self.label_status)
+        # self.label_status = QtWidgets.QAction('Status: unkown', self)
+        # self.label_status.setDisabled(True)
+        # self.trayIconMenu.insertAction(self.quitAction, self.label_status)
 
-        #self.trayIconMenu.addSeparator()
+        # self.trayIconMenu.addSeparator()
 
-        #self.upgrade = QtWidgets.QAction('Upgrade', self, triggered=self.getUpgrade)
-        #self.trayIconMenu.addAction(self.upgrade)
+        # self.upgrade = QtWidgets.QAction('Upgrade', self, triggered=self.getUpgrade)
+        # self.trayIconMenu.addAction(self.upgrade)
 
         self.trayIconMenu.addSeparator()
 
-        self.preference = QtWidgets.QAction('Preferences', self, triggered=self.open_preferences)
+        self.preference = QtWidgets.QAction('Preferences', self,
+                                            triggered=self.open_preferences)
         self.trayIconMenu.addAction(self.preference)
 
         self.help = QtWidgets.QAction('Help', self, triggered=self.open_help)
@@ -170,7 +170,6 @@ class Window(hpxqt_mng.WindowManagerMixIn,
         self.trayIconMenu.addAction(self.quitAction)
 
         self.set_status_traymenu(is_disabled=True)
-
 
 
 def init_app():
