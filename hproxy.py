@@ -102,12 +102,8 @@ class Window(hpxqt_mng.WindowManagerMixIn,
         self.hide()
 
     def load_login_page(self):
-        user = self.router.db_manager.last_user()
         url = QtCore.QUrl().fromLocalFile(os.path.join(self.templates, "login.html"))
         self.load(url)
-
-        if user:
-            self.router.js_handler_login(user.email, user.password)
 
     def show_error(self, error_msg):
         self.page().runJavaScript("show_error('%s');" % error_msg)
@@ -176,7 +172,8 @@ class Window(hpxqt_mng.WindowManagerMixIn,
         self.set_status_traymenu(is_disabled=True)
 
 
-if __name__ == '__main__':
+
+def init_app():
     app = QtWidgets.QApplication(sys.argv)
     if not QtWidgets.QSystemTrayIcon.isSystemTrayAvailable():
         QtWidgets.QMessageBox.critical(
@@ -186,6 +183,17 @@ if __name__ == '__main__':
     QtWidgets.QApplication.setQuitOnLastWindowClosed(False)
 
     window = Window()
-    window.show()
     window.load_login_page()
+
+    user = window.router.db_manager.last_user()
+    if user:
+        window.start_manager(user.email, user.password)
+        return app
+
+    window.show()
+    return app
+
+
+if __name__ == '__main__':
+    app = init_app()
     sys.exit(app.exec_())

@@ -13,6 +13,7 @@ class AuthResponseConsumer(Consumer):
     def process(self, msg):
         error = msg[b"error"]
         if error:
+            self.window.show()
             self.window.show_error(error_msg=error.decode())
             self.window.stop_manager()
             self.window.router.db_manager.delete_user()
