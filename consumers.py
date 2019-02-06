@@ -17,7 +17,6 @@ class AuthResponseConsumer(Consumer):
             self.window.stop_manager()
             self.window.router.db_manager.delete_user()
         else:
-            print("in processing", id(self.window), self.window.manager_thread)
             self.window.signal_minimize_tray.emit()
             self.window.router.db_manager.add_user(
                 email=self.window.manager_thread.email,
