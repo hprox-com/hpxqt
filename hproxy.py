@@ -1,12 +1,13 @@
 import os
 import sys
-import requests
 
+import requests
 from PyQt5 import QtGui, QtCore, QtWebChannel, QtWebEngineWidgets, QtWidgets
 
-from hpxqt import utils as hpxqt_utils
+from hpxclient import utils as hpxclient_utils
 from hpxqt import db as hpxqt_db
 from hpxqt import mng as hpxqt_mng
+from hpxqt import utils as hpxqt_utils
 
 
 class Router(QtCore.QObject):
@@ -173,6 +174,7 @@ class Window(hpxqt_mng.WindowManagerMixIn,
 
 
 def init_app():
+    hpxclient_utils.load_config()
     app = QtWidgets.QApplication(sys.argv)
     if not QtWidgets.QSystemTrayIcon.isSystemTrayAvailable():
         QtWidgets.QMessageBox.critical(
