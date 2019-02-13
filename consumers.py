@@ -1,5 +1,8 @@
+import platform
+
 from hpxclient import protocols as protocols
 from hpxqt import utils as hpxqt_utils
+from hpxqt import consts as hpxqt_consts
 
 
 class Consumer(object):
@@ -35,9 +38,40 @@ class InfoBalanceConsumer(Consumer):
 class InfoVersionConsumer(Consumer):
     KIND = protocols.InfoVersionConsumer.KIND
 
-    def process(self, msg):
-        self.window.latest_version = msg[b"version"].decode()
+    def __init__(self, window):
+        super().__init__(window)
 
+        self._OS = platform.system().lower()
+        if self._OS == 'darwin':
+            # to match the mapping returned from response
+            self._OS = hpxqt_consts.MAC_OS
+        self._ARCH = hpxqt_consts.ARCH_MAP.get(platform.architecture()[0], '')
+
+    def _save_new_version(self, binaries):
+        for binary in binaries:
+            b_platform = binary['platform'].lower()
+            b_arch = binary['arch'].lower()
+
+            if b_platform != self._OS:
+                continue
+
+            if b_platform != hpxqt_consts.MAC_OS and (self._ARCH not in b_arch):
+                    continue
+            return self.window.router.db_manager.add_update(binary['version'],
+                                                            binary['file'],
+                                                            self._OS)
+
+    def process(self, msg):
+        msg = hpxqt_utils.convert_bytes(msg)
+        update_ver = self.window.router.db_manager.get_update(msg["version"])
+
+        if not update_ver:
+            update_ver = self._save_new_version(msg['binaries'])
+
+        if not update_ver or update_ver.is_installed:
+            return
+
+        self.window.upgrade.setDisabled(False)
 
 
 REGISTERED_CONSUMERS = [
