@@ -87,7 +87,7 @@ class Window(hpxqt_mng.WindowManagerMixIn,
         close = QtWidgets.QMessageBox()
         close.setText("Do you want to exit?")
         close.setStandardButtons(
-            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.Cancel)
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
         close = close.exec()
 
         if close == QtWidgets.QMessageBox.Yes:
