@@ -1,15 +1,16 @@
 import os
 import sys
+import urllib.parse
 
 import requests
 from PyQt5 import QtGui, QtCore, QtWebChannel, QtWebEngineWidgets, QtWidgets
 
 from hpxclient import utils as hpxclient_utils
+from hpxqt import consts as hpxqt_consts
 from hpxqt import db as hpxqt_db
 from hpxqt import mng as hpxqt_mng
-from hpxqt import utils as hpxqt_utils
-from hpxqt import consts as hpxqt_consts
 from hpxqt import update as hpxqt_update
+from hpxqt import utils as hpxqt_utils
 
 
 class Router(QtCore.QObject):
@@ -39,8 +40,8 @@ class Router(QtCore.QObject):
 
     @QtCore.pyqtSlot(str)
     def js_handler_reset_password(self, email):
-        url = urllib.parse.join(hpxqt_consts.URL_PREFIX, 
-                                "api/account/password/reset/")
+        url = urllib.parse.urljoin(hpxqt_consts.URL_PREFIX,
+                                   "api/account/password/reset/")
         requests.post(url, data=dict(email=email))
 
     @QtCore.pyqtSlot(str)
@@ -123,7 +124,7 @@ class Window(hpxqt_mng.WindowManagerMixIn,
         self.page().runJavaScript("show_error('%s');" % error_msg)
 
     def open_url(self, url_path):
-        url = urllib.parse.join(hpxqt_consts.URL_PREFIX, url_path)
+        url = urllib.parse.urljoin(hpxqt_consts.URL_PREFIX, url_path)
         if not QtGui.QDesktopServices.openUrl(QtCore.QUrl(url)):
             QtWidgets.QMessageBox.warning(self,
                                           'Open Url',
