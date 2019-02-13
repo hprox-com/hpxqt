@@ -1,15 +1,13 @@
 import asyncio
 
-from PyQt5.QtCore import  QThread
+from PyQt5.QtCore import QThread
 
 from hpxclient.mng import service as mng_service
 from hpxqt import consumers as hpxqt_consumers
 
 
 class TCPManagerThread(QThread):
-    """ Thread for manager service
-    """
-
+    """Thread for manager service."""
     def __init__(self, email, password):
         QThread.__init__(self)
         self.email = email
@@ -30,6 +28,9 @@ class TCPManagerThread(QThread):
         self.loop.run_forever()
 
     def stop(self):
+        pending = asyncio.Task.all_tasks()
+        for p in pending:
+            p.cancel()
         self.loop.stop()
 
 
