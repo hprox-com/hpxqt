@@ -3,7 +3,7 @@ import platform
 from hpxclient import protocols as protocols
 from hpxqt import utils as hpxqt_utils
 from hpxqt import consts as hpxqt_consts
-
+from hpxqt import __version__ as version
 
 class Consumer(object):
     def __init__(self, window):
@@ -63,14 +63,18 @@ class InfoVersionConsumer(Consumer):
 
     def process(self, msg):
         msg = hpxqt_utils.convert_bytes(msg)
+        if version == msg['version']:
+            return
+        
         update_ver = self.window.router.db_manager.get_update(msg["version"])
-
         if not update_ver:
             update_ver = self._save_new_version(msg['binaries'])
+            if not update_ver:
+                # There was no update matching system specification
+                return
 
-        if not update_ver or update_ver.is_installed:
+        if update_ver.is_installed:
             return
-
         self.window.upgrade.setDisabled(False)
 
 
