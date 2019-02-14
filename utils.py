@@ -1,8 +1,6 @@
 import os
 import pathlib
 import sys
-import tarfile
-import zipfile
 from decimal import Decimal
 
 import psutil
@@ -64,18 +62,6 @@ def convert_bytes(data):
     if isinstance(data, tuple): return tuple(map(convert_bytes, data))
     if isinstance(data, list): return list(map(convert_bytes, data))
     return data
-
-
-def extract_zip(fpath):
-    with zipfile.ZipFile(fpath) as zip:
-        # Extract top .app directory
-        zip.extract(zip.filelist[0])
-
-
-def extract_tar(fpath):
-    with tarfile.open(fpath) as tar:
-        # Extract only executable
-        tar.extractall(tar.getmembers()[-1])
 
 
 def restart_program():
