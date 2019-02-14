@@ -217,6 +217,7 @@ def init_app():
 
     window = Window()
     window.load_login_page()
+    app._hprox_main_window = window
 
     user = window.router.db_manager.last_user()
     if user:
