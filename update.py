@@ -1,5 +1,4 @@
 import os
-import shutil
 import sys
 
 import requests
@@ -74,14 +73,6 @@ class WindowUpdateMixIn(object):
     
     def process_compressed_linux(self):
         hpxqt_utils.extract_tar(self.download_path)
-        extracted_folder = self.download_path.rstrip('.tar.gz')
-        new_executable_path = hpxqt_utils.get_executable_linux(extracted_folder)
-
-        # Replace currently running executable with new one
-        os.replace(new_executable_path, sys.argv[0])
-
-        # Clear downloaded files
-        shutil.rmtree(extracted_folder)
 
     def process_compressed_osx(self):
         hpxqt_utils.extract_zip(self.download_path)

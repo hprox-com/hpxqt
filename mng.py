@@ -1,6 +1,6 @@
 import asyncio
 
-from PyQt5.QtCore import QThread
+from PyQt5.QtCore import QThread, pyqtSignal
 
 from hpxclient.mng import service as mng_service
 from hpxqt import consumers as hpxqt_consumers
@@ -8,6 +8,8 @@ from hpxqt import consumers as hpxqt_consumers
 
 class TCPManagerThread(QThread):
     """Thread for manager service."""
+    signal_process_message = pyqtSignal(dict)
+    
     def __init__(self, email, password):
         QThread.__init__(self)
         self.email = email
@@ -18,7 +20,7 @@ class TCPManagerThread(QThread):
         coro = mng_service.start_client(
             email=self.email,
             password=self.password,
-            message_handler=hpxqt_consumers.process_message)
+            message_handler=self.signal_process_message.emit)
 
         asyncio.ensure_future(coro, loop=self.loop)
 
@@ -40,6 +42,8 @@ class WindowManagerMixIn(object):
 
     def start_manager(self, email, password):
         self.manager_thread = TCPManagerThread(email, password)
+        self.manager_thread.signal_process_message.connect(
+            hpxqt_consumers.process_message)
         self.manager_thread.start()
         print("Start manager", id(self), self.manager_thread)
 
