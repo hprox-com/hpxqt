@@ -10,7 +10,7 @@ from PyQt5.QtCore import pyqtSignal
 from hpxqt import consts as hpxqt_consts
 
 if getattr(sys, 'frozen', False):
-    FOLDER = os.path.dirname(sys.executable)
+    FOLDER = os.path.dirname(sys.argv[0])
 elif __file__:
     FOLDER = os.path.dirname(__file__)
 
@@ -27,6 +27,7 @@ class DownloadThread(QThread):
         self.wait()
 
     def run(self):
+        # TODO: add proxy for download?
         response = requests.get(self.url, stream=True)
         if response.status_code != 200:
             return
@@ -46,14 +47,20 @@ class WindowUpdateMixIn(object):
         self.download_thread = None
         self.last_update = None
         self.download_path = None
+        self.download_folder = FOLDER
+        self.download_path = None
 
         self.signal_upgrade_status_change.connect(self.upgrade_status_change)
 
     def start_upgrade(self):
         self.last_update = self.router.db_manager.last_update()
-        download_name = self.last_update.url.rsplit('/', maxsplit=1)[1]
-        self.download_path = os.path.join(FOLDER, download_name)
+        self.download_name = self.last_update.url.rsplit('/', maxsplit=1)[1]
 
+        if self.last_update.platform == hpxqt_consts.MAC_OS:
+            self.download_folder = os.path.dirname(os.path.dirname(os.path.dirname(FOLDER)))
+        
+        self.download_path = os.path.join(self.download_folder, self.download_name)
+            
         if self.last_update.is_downloaded:
             self.signal_upgrade_status_change.emit(hpxqt_consts.START_INSTALL)
             return
@@ -80,7 +87,7 @@ class WindowUpdateMixIn(object):
     def process_compressed_osx(self):
         with zipfile.ZipFile(self.download_path) as zip:
             # Extract top .app directory
-            zip.extract(zip.filelist[0])
+            zip.extractall()
         
     def process_installation(self):
         """
