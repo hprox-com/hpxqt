@@ -1,9 +1,12 @@
 import platform
 
+from PyQt5.QtCore import pyqtSlot
+
 from hpxclient import protocols as protocols
-from hpxqt import utils as hpxqt_utils
-from hpxqt import consts as hpxqt_consts
 from hpxqt import __version__ as version
+from hpxqt import consts as hpxqt_consts
+from hpxqt import utils as hpxqt_utils
+
 
 class Consumer(object):
     def __init__(self, window):
@@ -85,6 +88,7 @@ REGISTERED_CONSUMERS = [
 ]
 
 
+@pyqtSlot(dict)
 def process_message(msg):
     """ All messages sent to the manager are also processed by
     the ui interface.

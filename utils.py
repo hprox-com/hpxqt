@@ -6,11 +6,9 @@ import zipfile
 from decimal import Decimal
 
 import psutil
-from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtWidgets import QApplication
-from hpxqt import consts as hpxqt_consts
-from hpxclient import consts as hpxclient_consts
 
+from hpxclient import consts as hpxclient_consts
 
 SATOSHI_WEIGHT = 100000000
 
@@ -70,20 +68,14 @@ def convert_bytes(data):
 
 def extract_zip(fpath):
     with zipfile.ZipFile(fpath) as zip:
-        zip.extractall()
+        # Extract top .app directory
+        zip.extract(zip.filelist[0])
 
 
 def extract_tar(fpath):
     with tarfile.open(fpath) as tar:
-        tar.extractall()
-        
-
-def get_executable_linux(fpath):
-    for root, dirs, files in os.walk(fpath):
-        for file in files:
-            if hpxqt_consts.LINUX_APP_NAME not in file:
-                continue
-            return os.path.join(root, file)
+        # Extract only executable
+        tar.extractall(tar.getmembers()[-1])
 
 
 def restart_program():
