@@ -57,11 +57,7 @@ def get_db_file_path():
 
 
 def get_main_window():
-    app = QApplication.instance()
-    for widget in app.topLevelWidgets():
-        if isinstance(widget, QWebEngineView):
-            return widget
-    return None
+    return QApplication.instance()._hprox_main_window
 
 
 def convert_bytes(data):
