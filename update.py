@@ -1,12 +1,13 @@
 import os
 import sys
+import tarfile
+import zipfile
 
 import requests
 from PyQt5.QtCore import QThread
 from PyQt5.QtCore import pyqtSignal
 
 from hpxqt import consts as hpxqt_consts
-from hpxqt import utils as hpxqt_utils
 
 if getattr(sys, 'frozen', False):
     FOLDER = os.path.dirname(sys.executable)
@@ -72,10 +73,14 @@ class WindowUpdateMixIn(object):
             self.process_installation()
     
     def process_compressed_linux(self):
-        hpxqt_utils.extract_tar(self.download_path)
+        with tarfile.open(self.download_path) as tar:
+            # Extract only executable
+            tar.extractall(tar.getmembers()[-1])
 
     def process_compressed_osx(self):
-        hpxqt_utils.extract_zip(self.download_path)
+        with zipfile.ZipFile(self.download_path) as zip:
+            # Extract top .app directory
+            zip.extract(zip.filelist[0])
         
     def process_installation(self):
         """
@@ -85,8 +90,8 @@ class WindowUpdateMixIn(object):
         platform = self.last_update.platform
         if platform in hpxqt_consts.COMPRESSED_FILE_OS:
             getattr(self, 'process_compressed_%s' % platform)()
+            os.remove(self.download_path)
 
-        os.remove(self.download_path)
         self.router.db_manager.remove_downloaded(self.last_update.version)
         self.router.db_manager.mark_installed(self.last_update.version)
         self.signal_upgrade_status_change.emit(hpxqt_consts.FINISHED_INSTALL)
