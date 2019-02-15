@@ -7,6 +7,7 @@ import psutil
 from PyQt5.QtWidgets import QApplication
 
 from hpxclient import consts as hpxclient_consts
+from hpxqt import consts as hpxqt_const
 
 SATOSHI_WEIGHT = 100000000
 
@@ -72,5 +73,8 @@ def restart_program():
             os.close(file.fd)
     except Exception as e:
         print(e)
-    py_exec = sys.executable
-    os.execl(py_exec, py_exec, *sys.argv)
+
+    app_exec, *app_args = sys.argv
+    if sys.platform == hpxqt_const.MAC_OS:
+        app_args.insert(0, os.path.abspath(app_exec))
+    os.execl(sys.executable, sys.executable, *app_args)
