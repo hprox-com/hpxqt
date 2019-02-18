@@ -1,11 +1,9 @@
 import os
 import pathlib
-import shutil
 import sys
 from decimal import Decimal
 from zipfile import ZipFile, ZipInfo
 
-import psutil
 from PyQt5.QtWidgets import QApplication
 
 from hpxclient import consts as hpxclient_consts
