@@ -1,7 +1,9 @@
 import os
 import pathlib
+import shutil
 import sys
 from decimal import Decimal
+from zipfile import ZipFile, ZipInfo
 
 import psutil
 from PyQt5.QtWidgets import QApplication
@@ -67,14 +69,27 @@ def convert_bytes(data):
 
 def restart_program():
     try:
-        cur_process = psutil.Process(os.getpid())
-        open_files = cur_process.open_files() + cur_process.connections()
-        for file in open_files:
-            os.close(file.fd)
+        sys.stdout.flush()
     except Exception as e:
         print(e)
 
     app_exec, *app_args = sys.argv
     if sys.platform == hpxqt_const.MAC_OS:
         app_args.insert(0, os.path.abspath(app_exec))
-    os.execl(sys.executable, sys.executable, *app_args)
+
+    os.execl(sys.executable, sys.executable, *sys.argv)
+
+
+class ZipFileWithPermissions(ZipFile):
+    """ Custom ZipFile class handling file permissions."""
+
+    def _extract_member(self, member, targetpath, pwd):
+        if not isinstance(member, ZipInfo):
+            member = self.getinfo(member)
+
+        targetpath = super()._extract_member(member, targetpath, pwd)
+
+        attr = member.external_attr >> 16
+        if attr != 0:
+            os.chmod(targetpath, attr)
+        return targetpath
