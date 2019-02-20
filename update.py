@@ -82,14 +82,16 @@ class WindowUpdateMixIn(object):
     
     def process_compressed_linux(self):
         with tarfile.open(self.download_path) as tar:
+            tar_content = tar.getnames()
             tar.extractall()
-            # Get path to executable
-            src_dir = os.path.join(self.download_folder, tar.getnames()[-1])
-            # Must provide full path, otherwise executable won't be replaced!
-            dest_dir = os.path.join(self.download_folder,
-                                    hpxqt_consts.LINUX_APP_NAME)
-            shutil.move(src_dir, dest_dir)
-            shutil.rmtree(tar.getnames()[0])
+
+        # Get path to executable
+        src_dir = os.path.join(self.download_folder, tar_content[-1])
+        # Must provide full path, otherwise executable won't be replaced!
+        dest_dir = os.path.join(self.download_folder,
+                                hpxqt_consts.LINUX_APP_NAME)
+        shutil.move(src_dir, dest_dir)
+        shutil.rmtree(tar_content[0])
 
     def process_compressed_osx(self):
         with zipfile.ZipFile(self.download_path) as zip:
