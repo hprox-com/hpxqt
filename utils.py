@@ -1,3 +1,4 @@
+import logging
 import os
 import pathlib
 import sys
@@ -90,3 +91,50 @@ class ZipFileWithPermissions(ZipFile):
         if attr != 0:
             os.chmod(targetpath, attr)
         return targetpath
+
+
+def get_logging_config():
+    return dict(
+        version=1,
+        disable_existing_loggers=False,
+        formatters={
+            'default': {
+                'format': '[{levelname}] [{asctime}]: {message}',
+                'style': '{'
+            },
+            'plain': {
+                'format': '{message}',
+                'style': '{'
+            }
+        },
+        handlers={
+            'console': {
+                'class': 'logging.StreamHandler',
+                'formatter': 'default',
+                'level': logging.DEBUG
+            },
+            'file': {
+                'class': 'logging.FileHandler',
+                'formatter': 'plain',
+                'level': logging.INFO,
+                'filename': os.path.join(get_hprox_dir_path(), 'info.log'),
+                'mode': 'w',
+            },
+        },
+        loggers={
+            'hpxqt': {
+                'handlers': ['console'],
+                'level': 'DEBUG',
+                'propagate': True
+            },
+            'hpxqt.file': {
+                'handlers': ['file'],
+                'level': 'INFO',
+                'propagate': True
+            }
+        }
+    )
+
+
+def get_loggers():
+    return logging.getLogger('hpxqt'), logging.getLogger('hpxqt.file')

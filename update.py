@@ -10,6 +10,9 @@ from PyQt5.QtCore import pyqtSignal
 from hpxqt import consts as hpxqt_consts
 from hpxqt import utils as hpxqt_utils
 
+logger, flogger = hpxqt_utils.get_loggers()
+
+
 if getattr(sys, 'frozen', False):
     FOLDER = os.path.dirname(os.path.abspath(sys.argv[0]))
 elif __file__:
