@@ -2,13 +2,13 @@ import os
 import shutil
 import sys
 import tarfile
-import zipfile
 
 import requests
 from PyQt5.QtCore import QThread
 from PyQt5.QtCore import pyqtSignal
 
 from hpxqt import consts as hpxqt_consts
+from hpxqt import utils as hpxqt_utils
 
 if getattr(sys, 'frozen', False):
     FOLDER = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -82,22 +82,40 @@ class WindowUpdateMixIn(object):
     
     def process_compressed_linux(self):
         with tarfile.open(self.download_path) as tar:
-            tar_content = tar.getnames()
             tar.extractall()
-
-        # Get path to executable
-        src_dir = os.path.join(self.download_folder, tar_content[-1])
-        # Must provide full path, otherwise executable won't be replaced!
-        dest_dir = os.path.join(self.download_folder,
-                                hpxqt_consts.LINUX_APP_NAME)
-        shutil.move(src_dir, dest_dir)
-        shutil.rmtree(tar_content[0])
+            # Get path to executable
+            src_dir = os.path.join(self.download_folder, tar.getnames()[-1])
+            # Must provide full path, otherwise executable won't be replaced!
+            dest_dir = os.path.join(self.download_folder,
+                                    hpxqt_consts.LINUX_APP_NAME)
+            shutil.move(src_dir, dest_dir)
+            # Remove extracted top level folder
+            shutil.rmtree(tar.getnames()[0])
 
     def process_compressed_osx(self):
-        with zipfile.ZipFile(self.download_path) as zip:
-            # Extract top .app directory
-            zip.extractall()
-        
+        with hpxqt_utils.ZipFileWithPermissions(self.download_path) as zip:
+            src_dir = os.path.join(self.download_folder, 'tmpdir')
+            zip.extractall(path=src_dir)
+
+        old_path = os.getcwd()
+        for root, files ,dirs in os.walk(src_dir):
+            dest_root = root.replace('/tmpdir', '')
+            if not os.path.exists(dest_root):
+                os.makedirs(dest_root, exist_ok=True)
+            for file in files:
+                src_path = os.path.join(root, file)
+                dest_path = os.path.join(dest_root, file)
+                if os.path.exists(dest_path):
+                    if os.path.samefile(src_path, dest_path):
+                        continue
+                    shutil.rmtree(dest_path)
+                shutil.move(src_path, dest_path)
+
+        # Refresh inodes
+        os.chdir(old_path)
+
+        shutil.rmtree(src_dir)
+
     def process_installation(self):
         """
         Updates database and replaces a current process with
