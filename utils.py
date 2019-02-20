@@ -8,7 +8,7 @@ from zipfile import ZipFile, ZipInfo
 from PyQt5.QtWidgets import QApplication
 
 from hpxclient import consts as hpxclient_consts
-from hpxqt import consts as hpxqt_const
+from hpxqt import consts as hpxqt_consts
 
 SATOSHI_WEIGHT = 100000000
 
@@ -33,9 +33,16 @@ def get_data_dir():
 
 
 def get_app_dir():
-    _OS = platform.system().lower()
-    if _OS == 'darwin':
-        return get_data_dir().split(hpxqt_const.MAC_APP_NAME)[0]
+    app_dir = None
+    if getattr(sys, 'frozen', False):
+        app_dir = sys.executable
+    elif __file__:
+        app_dir = __file__
+    app_dir = os.path.dirname(os.path.abspath(app_dir))
+
+    if platform.system().lower() == 'darwin':
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(app_dir)))
+    return app_dir
 
 
 def get_templates_dir_path():
@@ -77,11 +84,7 @@ def restart_program():
         sys.stdout.flush()
     except Exception as e:
         print(e)
-
-    app_exec, *app_args = sys.argv
-    if sys.platform == hpxqt_const.MAC_OS:
-        app_args.insert(0, os.path.abspath(app_exec))
-    os.execl(sys.executable, sys.executable, *sys.argv)
+    os.execl(sys.executable, sys.executable, *sys.argv[1:])
 
 
 class ZipFileWithPermissions(ZipFile):

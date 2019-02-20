@@ -73,12 +73,15 @@ class WindowUpdateMixIn(object):
     
     def process_linux(self):
         with tarfile.open(self.download_file) as tar:
-            tar.extractall()
+            # specify path explicitly to extract files to download_dir
+            tar.extractall(path=os.path.join(self.download_dir.name))
             # Get path to executable
-            src_dir = os.path.join(self.download_file.rsplit('.tar', maxsplit=1)[0], tar.getnames()[-1])
+            src_dir = os.path.join(self.download_dir.name, tar.getnames()[-1])
             # Must provide full path, otherwise executable won't be replaced!
             dest_dir = os.path.join(self.app_dir, hpxqt_consts.LINUX_APP_NAME)
+            os.remove(dest_dir)
             shutil.move(src_dir, dest_dir)
+        self.download_dir.cleanup()
 
     def process_osx(self):
         with hpxqt_utils.ZipFileWithPermissions(self.download_file) as zip:
