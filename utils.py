@@ -1,5 +1,6 @@
 import os
 import pathlib
+import platform
 import sys
 from decimal import Decimal
 from zipfile import ZipFile, ZipInfo
@@ -29,6 +30,12 @@ def get_data_dir():
         )
 
     return os.path.dirname(os.path.abspath(__file__))
+
+
+def get_app_dir():
+    _OS = platform.system().lower()
+    if _OS == 'darwin':
+        return get_data_dir().split(hpxqt_const.MAC_APP_NAME)[0]
 
 
 def get_templates_dir_path():
