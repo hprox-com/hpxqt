@@ -12,6 +12,8 @@ from hpxqt import mng as hpxqt_mng
 from hpxqt import update as hpxqt_update
 from hpxqt import utils as hpxqt_utils
 
+# Required for QtGui.QPixmap to work
+from hpxqt import hpximg
 
 class Router(QtCore.QObject):
     init_close = QtCore.pyqtSignal()
@@ -78,10 +80,15 @@ class Window(hpxqt_mng.WindowManagerMixIn,
         self.name = hpxqt_consts.APP_NAME
         self.setWindowTitle(hpxqt_consts.APP_TITLE)
         self.resize(400, 480)
-        self.setWindowIcon(QtGui.QIcon(os.path.join(self.media, 'images', 'icon.png')))
+        self.setWindowIcon(self._get_icon())
 
         self._create_tray_icon()
         self.trayIcon.show()
+
+    def _get_icon(self):
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/images/icon.png"))
+        return icon
 
     def closeEvent(self, event):
         close = QtWidgets.QMessageBox()
@@ -164,9 +171,7 @@ class Window(hpxqt_mng.WindowManagerMixIn,
 
         self.trayIconMenu = QtWidgets.QMenu(self)
         self.trayIcon = QtWidgets.QSystemTrayIcon(self)
-        icon = QtGui.QIcon(os.path.join(self.media, 'images', 'icon.png'))
-        self.trayIcon.setIcon(icon)
-        self.setWindowIcon(icon)
+        self.trayIcon.setIcon(self._get_icon())
 
         self.trayIcon.setContextMenu(self.trayIconMenu)
         self.label_balance = QtWidgets.QAction('Balance: unknown', self)
