@@ -2,6 +2,7 @@ import os
 import shutil
 import sys
 import tarfile
+import tempfile
 
 import requests
 from PyQt5.QtCore import QThread
@@ -9,11 +10,6 @@ from PyQt5.QtCore import pyqtSignal
 
 from hpxqt import consts as hpxqt_consts
 from hpxqt import utils as hpxqt_utils
-
-if getattr(sys, 'frozen', False):
-    FOLDER = os.path.dirname(os.path.abspath(sys.argv[0]))
-elif __file__:
-    FOLDER = os.path.dirname(__file__)
 
 
 class DownloadThread(QThread):
@@ -45,10 +41,12 @@ class WindowUpdateMixIn(object):
     signal_upgrade_status_change = pyqtSignal(int)
 
     def __init__(self):
+        self.data_dir = hpxqt_utils.get_data_dir()
         self.download_thread = None
         self.last_update = None
+
         self.download_name = None
-        self.download_folder = FOLDER
+        self.download_folder = tempfile.mkdtemp()
         self.download_path = None
 
         self.signal_upgrade_status_change.connect(self.upgrade_status_change)
@@ -56,10 +54,6 @@ class WindowUpdateMixIn(object):
     def start_upgrade(self):
         self.last_update = self.router.db_manager.last_update()
         self.download_name = self.last_update.url.rsplit('/', maxsplit=1)[1]
-        
-        if self.last_update.platform == hpxqt_consts.MAC_OS:
-            self.download_folder = os.path.dirname(os.path.dirname(os.path.dirname(FOLDER)))
-        
         self.download_path = os.path.join(self.download_folder, self.download_name)
             
         if self.last_update.is_downloaded:
@@ -80,26 +74,30 @@ class WindowUpdateMixIn(object):
         if kind in [hpxqt_consts.START_INSTALL, hpxqt_consts.FINISHED_DOWNLOAD]:
             self.process_installation()
     
-    def process_compressed_linux(self):
+    def process_linux(self):
         with tarfile.open(self.download_path) as tar:
             tar.extractall()
             # Get path to executable
             src_dir = os.path.join(self.download_folder, tar.getnames()[-1])
             # Must provide full path, otherwise executable won't be replaced!
-            dest_dir = os.path.join(self.download_folder,
-                                    hpxqt_consts.LINUX_APP_NAME)
+            dest_dir = os.path.join(self.data_dir, hpxqt_consts.LINUX_APP_NAME)
+
             shutil.move(src_dir, dest_dir)
-            # Remove extracted top level folder
-            shutil.rmtree(tar.getnames()[0])
 
-    def process_compressed_osx(self):
+    def process_osx(self):
         with hpxqt_utils.ZipFileWithPermissions(self.download_path) as zip:
-            src_dir = os.path.join(self.download_folder, 'tmpdir')
-            zip.extractall(path=src_dir)
+            # src_dir = os.path.join(self.download_folder, 'tmpdir')
+            zip.extractall()
+            # Get top level *.app directory
+            extracted_folder = zip.namelist()[0]
+            extracted_path = os.path.join(self.download_folder,
+                                          extracted_folder)
 
-        old_path = os.getcwd()
-        for root, files ,dirs in os.walk(src_dir):
-            dest_root = root.replace('/tmpdir', '')
+        # old_path = os.getcwd()
+        for root, files, dirs in os.walk(extracted_path):
+            # Get equivalent path in destination directory
+            dest_root = root.split(extracted_folder)[1]
+            dest_root = os.path.join(self.data_dir, extracted_folder, dest_root)
             if not os.path.exists(dest_root):
                 os.makedirs(dest_root, exist_ok=True)
             for file in files:
@@ -112,19 +110,18 @@ class WindowUpdateMixIn(object):
                 shutil.move(src_path, dest_path)
 
         # Refresh inodes
-        os.chdir(old_path)
+        # os.chdir(old_path)
 
-        shutil.rmtree(src_dir)
+    def process_windows(self):
+        pass
 
     def process_installation(self):
         """
         Updates database and replaces a current process with
         a new process.
         """
-        platform = self.last_update.platform
-        if platform in hpxqt_consts.COMPRESSED_FILE_OS:
-            getattr(self, 'process_compressed_%s' % platform)()
-            os.remove(self.download_path)
+        getattr(self, 'process_%s' % self.last_update.platform)()
+        os.remove(self.download_folder)
 
         self.router.db_manager.remove_downloaded(self.last_update.version)
         self.router.db_manager.mark_installed(self.last_update.version)
