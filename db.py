@@ -33,6 +33,8 @@ class DatabaseManager(object):
 
     @pony_orm.db_session
     def add_user(self, email, password):
+        if self.get_user(email):
+            return
         User(email=email, password=password)
 
     @pony_orm.db_session
