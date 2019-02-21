@@ -39,7 +39,10 @@ class WindowUpdateMixIn(object):
     signal_upgrade_status_change = pyqtSignal(int)
 
     def __init__(self):
+        _os = hpxqt_utils.get_os()
+
         self.app_dir = hpxqt_utils.get_app_dir()
+        self.app_path = os.path.join(self.app_dir, hpxqt_consts.APP_NAME_MAP[_os])
         self.download_thread = None
         self.last_update = None
 
@@ -48,8 +51,11 @@ class WindowUpdateMixIn(object):
 
         self.signal_upgrade_status_change.connect(self.upgrade_status_change)
 
+        self._remove_old_executable()
+
     def start_upgrade(self):
         self.last_update = self.router.db_manager.last_update()
+
         self.download_dir = tempfile.TemporaryDirectory()
         self.download_file = os.path.join(self.download_dir.name, self.last_update.url.rsplit('/', maxsplit=1)[-1])
 
@@ -64,6 +70,14 @@ class WindowUpdateMixIn(object):
             self.upgrade_status_change)
         self.download_thread.start()
 
+    def _rename_executable(self):
+        os.rename(self.app_path, '%s.tmp' % self.app_path)
+
+    def _remove_old_executable(self):
+        tmp_app_path = '%s.tmp' % self.app_path
+        if os.path.exists(tmp_app_path):
+            os.remove(tmp_app_path)
+
     def upgrade_status_change(self, kind):
         if kind == hpxqt_consts.FINISHED_DOWNLOAD:
             self.router.db_manager.mark_downloaded(self.last_update.version)
@@ -77,27 +91,21 @@ class WindowUpdateMixIn(object):
             tar.extractall(path=os.path.join(self.download_dir.name))
             # Get path to executable
             src_dir = os.path.join(self.download_dir.name, tar.getnames()[-1])
-            # Must provide full path, otherwise executable won't be replaced!
-            dest_dir = os.path.join(self.app_dir, hpxqt_consts.LINUX_APP_NAME)
-            os.remove(dest_dir)
-            shutil.move(src_dir, dest_dir)
+            shutil.move(src_dir, self.app_path)
 
     def process_osx(self):
         with hpxqt_utils.ZipFileWithPermissions(self.download_file) as zip:
-            shutil.rmtree(os.path.join(self.app_dir, hpxqt_consts.MAC_APP_NAME))
             zip.extractall(path=self.app_dir)
 
     def process_windows(self):
-        dest_dir = os.path.join(self.app_dir, hpxqt_consts.WINDOWS_APP_NAME)
-        os.remove(dest_dir)
-        shutil.move(self.download_file, dest_dir)
+        shutil.move(self.download_file, self.app_path)
 
     def process_installation(self):
         """
         Updates database and replaces a current process with
         a new process.
         """
-        # if platform in hpxqt_consts.COMPRESSED_FILE_OS:
+        self._rename_executable()
         getattr(self, 'process_%s' % self.last_update.platform)()
         self.download_dir.cleanup()
 

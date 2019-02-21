@@ -1,3 +1,4 @@
+import logging
 import os
 import pathlib
 import platform
@@ -15,6 +16,13 @@ SATOSHI_WEIGHT = 100000000
 
 def satoshi2bst(amount):
     return Decimal(str(amount)) / SATOSHI_WEIGHT
+
+
+def get_os():
+    _os = platform.system().lower()
+    if _os == 'darwin':
+        _os = hpxqt_consts.MAC_OS
+    return _os
 
 
 def get_data_dir():
@@ -40,7 +48,7 @@ def get_app_dir():
         app_dir = __file__
     app_dir = os.path.dirname(os.path.abspath(app_dir))
 
-    if platform.system().lower() == 'darwin':
+    if get_os() == hpxqt_consts.MAC_OS:
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(app_dir)))
     return app_dir
 
@@ -84,8 +92,9 @@ def restart_program():
         sys.stdout.flush()
     except Exception as e:
         print(e)
+
     app_exec, *app_args = sys.argv
-    if platform.system().lower() == 'darwin':
+    if get_os() == hpxqt_consts.MAC_OS:
         app_args.insert(0, os.path.abspath(app_exec))
     os.execl(sys.executable, sys.executable, *app_args)
 
@@ -103,3 +112,50 @@ class ZipFileWithPermissions(ZipFile):
         if attr != 0:
             os.chmod(targetpath, attr)
         return targetpath
+
+
+def get_logging_config():
+    return dict(
+        version=1,
+        disable_existing_loggers=False,
+        formatters={
+            'default': {
+                'format': '[{levelname}] [{asctime}]: {message}',
+                'style': '{'
+            },
+            'plain': {
+                'format': '{message}',
+                'style': '{'
+            }
+        },
+        handlers={
+            'console': {
+                'class': 'logging.StreamHandler',
+                'formatter': 'default',
+                'level': logging.DEBUG
+            },
+            'file': {
+                'class': 'logging.FileHandler',
+                'formatter': 'plain',
+                'level': logging.INFO,
+                'filename': os.path.join(get_hprox_dir_path(), 'info.log'),
+                'mode': 'w',
+            },
+        },
+        loggers={
+            'hpxqt': {
+                'handlers': ['console'],
+                'level': 'DEBUG',
+                'propagate': True
+            },
+            'hpxqt.file': {
+                'handlers': ['file'],
+                'level': 'INFO',
+                'propagate': True
+            }
+        }
+    )
+
+
+def get_loggers():
+    return logging.getLogger('hpxqt'), logging.getLogger('hpxqt.file')
