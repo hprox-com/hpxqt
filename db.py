@@ -10,7 +10,7 @@ DB = pony_orm.Database()
 
 
 class User(DB.Entity):
-    email = pony_orm.Required(str, unique=True)
+    email = pony_orm.Required(str)
     password = pony_orm.Required(str)
 
 
