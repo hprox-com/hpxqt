@@ -44,10 +44,7 @@ class InfoVersionConsumer(Consumer):
     def __init__(self, window):
         super().__init__(window)
 
-        self._OS = platform.system().lower()
-        if self._OS == 'darwin':
-            # to match the mapping returned from response
-            self._OS = hpxqt_consts.MAC_OS
+        self._OS = hpxqt_utils.get_os()
         self._ARCH = hpxqt_consts.ARCH_MAP.get(platform.architecture()[0], '')
 
     def _save_new_version(self, binaries):
@@ -66,8 +63,8 @@ class InfoVersionConsumer(Consumer):
 
     def process(self, msg):
         msg = hpxqt_utils.convert_bytes(msg)
-        # if version == msg['version']:
-        #     return
+        if version == msg['version']:
+            return
         
         update_ver = self.window.router.db_manager.get_update(msg["version"])
         if not update_ver:

@@ -1,6 +1,7 @@
 import logging
 import os
 import pathlib
+import platform
 import sys
 from decimal import Decimal
 from zipfile import ZipFile, ZipInfo
@@ -8,13 +9,20 @@ from zipfile import ZipFile, ZipInfo
 from PyQt5.QtWidgets import QApplication
 
 from hpxclient import consts as hpxclient_consts
-from hpxqt import consts as hpxqt_const
+from hpxqt import consts as hpxqt_consts
 
 SATOSHI_WEIGHT = 100000000
 
 
 def satoshi2bst(amount):
     return Decimal(str(amount)) / SATOSHI_WEIGHT
+
+
+def get_os():
+    _os = platform.system().lower()
+    if _os == 'darwin':
+        _os = hpxqt_consts.MAC_OS
+    return _os
 
 
 def get_data_dir():
@@ -30,6 +38,19 @@ def get_data_dir():
         )
 
     return os.path.dirname(os.path.abspath(__file__))
+
+
+def get_app_dir():
+    app_dir = None
+    if getattr(sys, 'frozen', False):
+        app_dir = sys.executable
+    elif __file__:
+        app_dir = __file__
+    app_dir = os.path.dirname(os.path.abspath(app_dir))
+
+    if get_os() == hpxqt_consts.MAC_OS:
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(app_dir)))
+    return app_dir
 
 
 def get_templates_dir_path():
@@ -73,9 +94,9 @@ def restart_program():
         print(e)
 
     app_exec, *app_args = sys.argv
-    if sys.platform == hpxqt_const.MAC_OS:
+    if get_os() == hpxqt_consts.MAC_OS:
         app_args.insert(0, os.path.abspath(app_exec))
-    os.execl(sys.executable, sys.executable, *sys.argv)
+    os.execl(sys.executable, sys.executable, *app_args)
 
 
 class ZipFileWithPermissions(ZipFile):
