@@ -1,4 +1,10 @@
+import platform
+
+from PyQt5.QtCore import pyqtSlot
+
 from hpxclient import protocols as protocols
+from hpxqt import __version__ as version
+from hpxqt import consts as hpxqt_consts
 from hpxqt import utils as hpxqt_utils
 
 
@@ -35,9 +41,41 @@ class InfoBalanceConsumer(Consumer):
 class InfoVersionConsumer(Consumer):
     KIND = protocols.InfoVersionConsumer.KIND
 
-    def process(self, msg):
-        self.window.latest_version = msg[b"version"].decode()
+    def __init__(self, window):
+        super().__init__(window)
 
+        self._OS = hpxqt_utils.get_os()
+        self._ARCH = hpxqt_consts.ARCH_MAP.get(platform.architecture()[0], '')
+
+    def _save_new_version(self, binaries):
+        for binary in binaries:
+            b_platform = binary['platform'].lower()
+            b_arch = binary['arch'].lower()
+
+            if b_platform != self._OS:
+                continue
+
+            if b_platform != hpxqt_consts.MAC_OS and (self._ARCH not in b_arch):
+                    continue
+            return self.window.router.db_manager.add_update(binary['version'],
+                                                            binary['file'],
+                                                            self._OS)
+
+    def process(self, msg):
+        msg = hpxqt_utils.convert_bytes(msg)
+        if version == msg['version']:
+            return
+        
+        update_ver = self.window.router.db_manager.get_update(msg["version"])
+        if not update_ver:
+            update_ver = self._save_new_version(msg['binaries'])
+            if not update_ver:
+                # There was no update matching system specification
+                return
+
+        if update_ver.is_installed:
+            return
+        self.window.upgrade.setDisabled(False)
 
 
 REGISTERED_CONSUMERS = [
@@ -47,6 +85,7 @@ REGISTERED_CONSUMERS = [
 ]
 
 
+@pyqtSlot(dict)
 def process_message(msg):
     """ All messages sent to the manager are also processed by
     the ui interface.
