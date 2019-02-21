@@ -9,7 +9,7 @@ from hpxclient import utils as hpxclient_utils
 from hpxqt import consts as hpxqt_consts
 from hpxqt import db as hpxqt_db
 from hpxqt import mng as hpxqt_mng
-from hpxqt import update as hpxqt_update
+from hpxqt import upgrade as hpxqt_upgrade
 from hpxqt import utils as hpxqt_utils
 
 # Required for QtGui.QPixmap to work
@@ -52,14 +52,14 @@ class Router(QtCore.QObject):
 
 
 class Window(hpxqt_mng.WindowManagerMixIn,
-             hpxqt_update.WindowUpdateMixIn,
+             hpxqt_upgrade.WindowUpdateMixIn,
              QtWebEngineWidgets.QWebEngineView):
     signal_minimize_tray = QtCore.pyqtSignal()
 
     def __init__(self):
         QtWebEngineWidgets.QWebEngineView.__init__(self)
         hpxqt_mng.WindowManagerMixIn.__init__(self)
-        hpxqt_update.WindowUpdateMixIn.__init__(self)
+        hpxqt_upgrade.WindowUpdateMixIn.__init__(self)
 
         # Connect to signals
         self.signal_minimize_tray.connect(self.action_minimize_tray)
