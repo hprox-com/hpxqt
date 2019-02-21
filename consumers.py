@@ -63,7 +63,7 @@ class InfoVersionConsumer(Consumer):
 
     def process(self, msg):
         msg = hpxqt_utils.convert_bytes(msg)
-        if version >= msg['version']:
+        if version == msg['version']:
             return
         
         update_ver = self.window.router.db_manager.get_update(msg["version"])
