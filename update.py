@@ -84,20 +84,23 @@ class WindowUpdateMixIn(object):
 
         if kind in [hpxqt_consts.START_INSTALL, hpxqt_consts.FINISHED_DOWNLOAD]:
             self.process_installation()
-    
+
     def process_linux(self):
         with tarfile.open(self.download_file) as tar:
             # specify path explicitly to extract files to download_dir
             tar.extractall(path=os.path.join(self.download_dir.name))
             # Get path to executable
             src_dir = os.path.join(self.download_dir.name, tar.getnames()[-1])
+            self._rename_executable()
             shutil.move(src_dir, self.app_path)
 
     def process_osx(self):
+        self._rename_executable()
         with hpxqt_utils.ZipFileWithPermissions(self.download_file) as zip:
             zip.extractall(path=self.app_dir)
 
     def process_windows(self):
+        self._rename_executable()
         shutil.move(self.download_file, self.app_path)
 
     def process_installation(self):
@@ -105,7 +108,6 @@ class WindowUpdateMixIn(object):
         Updates database and replaces a current process with
         a new process.
         """
-        self._rename_executable()
         getattr(self, 'process_%s' % self.last_update.platform)()
         self.download_dir.cleanup()
 
