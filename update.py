@@ -81,23 +81,25 @@ class WindowUpdateMixIn(object):
             dest_dir = os.path.join(self.app_dir, hpxqt_consts.LINUX_APP_NAME)
             os.remove(dest_dir)
             shutil.move(src_dir, dest_dir)
-        self.download_dir.cleanup()
 
     def process_osx(self):
         with hpxqt_utils.ZipFileWithPermissions(self.download_file) as zip:
             shutil.rmtree(os.path.join(self.app_dir, hpxqt_consts.MAC_APP_NAME))
             zip.extractall(path=self.app_dir)
-        self.download_dir.cleanup()
 
     def process_windows(self):
-        pass
+        dest_dir = os.path.join(self.app_dir, hpxqt_consts.WINDOWS_APP_NAME)
+        os.remove(dest_dir)
+        shutil.move(self.download_file, dest_dir)
 
     def process_installation(self):
         """
         Updates database and replaces a current process with
         a new process.
         """
+        # if platform in hpxqt_consts.COMPRESSED_FILE_OS:
         getattr(self, 'process_%s' % self.last_update.platform)()
+        self.download_dir.cleanup()
 
         self.router.db_manager.remove_downloaded(self.last_update.version)
         self.router.db_manager.mark_installed(self.last_update.version)
