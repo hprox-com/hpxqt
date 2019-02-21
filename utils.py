@@ -84,7 +84,10 @@ def restart_program():
         sys.stdout.flush()
     except Exception as e:
         print(e)
-    os.execl(sys.executable, sys.executable, *sys.argv[1:])
+    app_exec, *app_args = sys.argv
+    if platform.system().lower() == 'darwin':
+        app_args.insert(0, os.path.abspath(app_exec))
+    os.execl(sys.executable, sys.executable, *app_args)
 
 
 class ZipFileWithPermissions(ZipFile):
