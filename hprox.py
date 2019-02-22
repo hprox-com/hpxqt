@@ -6,6 +6,7 @@ import requests
 from PyQt5 import QtGui, QtCore, QtWebChannel, QtWebEngineWidgets, QtWidgets
 
 from hpxclient import utils as hpxclient_utils
+from hpxclient import settings as hpxclient_settings
 from hpxqt import consts as hpxqt_consts
 from hpxqt import db as hpxqt_db
 from hpxqt import mng as hpxqt_mng
@@ -14,6 +15,7 @@ from hpxqt import utils as hpxqt_utils
 
 # Required for QtGui.QPixmap to work
 from hpxqt import hpximg
+
 
 class Router(QtCore.QObject):
     init_close = QtCore.pyqtSignal()
@@ -87,6 +89,10 @@ class Window(hpxqt_mng.WindowManagerMixIn,
 
     def _get_icon(self):
         icon = QtGui.QIcon()
+        if hpxclient_settings.DEBUG:
+            icon.addFile(os.path.join(self.media, 'images', 'icon.png'))
+            return icon
+
         icon.addPixmap(QtGui.QPixmap(":/images/icon.png"))
         return icon
 
